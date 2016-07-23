@@ -8,57 +8,66 @@ from lists.models import Item
 
 
 class HomePageTest(TestCase):
-	def test_rootURL_resolvesToHomePageView(self):
-		found = resolve('/')
-		self.assertEquals(found.func, home_page)
+    def test_rootURL_resolvesToHomePageView(self):
+        found = resolve('/')
+        self.assertEquals(found.func, home_page)
 
-	def test_home_page_returns_correct_html(self):
-		request = HttpRequest()
-		response = home_page(request)
+    def test_home_page_only_saves_items_when_they_exist_in_request(self):
+        request = HttpRequest()
+        home_page(request)
+        self.assertEqual(Item.objects.count(), 0)
 
-		expected_html = render_to_string('home.html')
+    def test_home_page_returns_correct_html(self):
+        request = HttpRequest()
+        response = home_page(request)
 
-		# remove CSRF token to allow us to test
-		observed_html = self.remove_csrf_from_markup(response)
+        expected_html = render_to_string('home.html')
 
-		self.assertIn(expected_html, observed_html)
+        # remove CSRF token to allow us to test
+        observed_html = self.remove_csrf_from_markup(response)
 
-	def test_home_page_can_save_a_POST_request(self):
-		request = HttpRequest()
-		request.method = 'POST'
-		expected_entry = 'A new list item'
-		request.POST['item_text'] = expected_entry
+        self.assertIn(expected_html, observed_html)
 
-		response = home_page(request)
+    def test_home_page_can_save_a_POST_request(self):
+        request = HttpRequest()
+        request.method = 'POST'
+        expected_entry = 'A new list item'
+        request.POST['item_text'] = expected_entry
 
-		self.assertIn(expected_entry, response.content.decode())
-		expected_html = render_to_string('home.html', {'new_item_text': expected_entry})
+        response = home_page(request)
 
-		# remove CSRF token to allow us to test
-		observed_html = self.remove_csrf_from_markup(response)
+        self.assertEqual(Item.objects.count(), 1)
+        retrieved_item = Item.objects.first()
+        self.assertEqual(retrieved_item.text, expected_entry)
 
-		self.assertEqual(expected_html, observed_html)
+        self.assertIn(expected_entry, response.content.decode())
+        expected_html = render_to_string('home.html', {'new_item_text': expected_entry})
 
-	def remove_csrf_from_markup(self, response):
-		csrf_regex = r'<input[^>]+csrfmiddlewaretoken[^>]+>'
-		observed_html = re.sub(csrf_regex, '', response.content.decode())
-		return observed_html
+        # remove CSRF token to allow us to test
+        observed_html = self.remove_csrf_from_markup(response)
+
+        self.assertEqual(expected_html, observed_html)
+
+    def remove_csrf_from_markup(self, response):
+        csrf_regex = r'<input[^>]+csrfmiddlewaretoken[^>]+>'
+        observed_html = re.sub(csrf_regex, '', response.content.decode())
+        return observed_html
+
 
 class ItemModelTest(TestCase):
+    def test_saving_and_retrieving_items(self):
+        first_item = Item()
+        first_item.text = 'The first (ever) list item'
+        first_item.save()
 
-	def test_saving_and_retrieving_items(self):
-		first_item = Item()
-		first_item.text = 'The first (ever) list item'
-		first_item.save()
+        second_item = Item()
+        second_item.text = 'The second item'
+        second_item.save()
 
-		second_item = Item()
-		second_item.text = 'The second item'
-		second_item.save()
+        saved_items = Item.objects.all()
+        self.assertEquals(saved_items.count(), 2)
 
-		saved_items = Item.objects.all()
-		self.assertEquals(saved_items.count(), 2)
-
-		retrieved_first_item = saved_items[0]
-		retrieved_second_item = saved_items[1]
-		self.assertEqual(retrieved_first_item.text, first_item.text)
-		self.assertEqual(retrieved_second_item.text, second_item.text)
+        retrieved_first_item = saved_items[0]
+        retrieved_second_item = saved_items[1]
+        self.assertEqual(retrieved_first_item.text, first_item.text)
+        self.assertEqual(retrieved_second_item.text, second_item.text)
