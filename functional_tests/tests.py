@@ -1,9 +1,9 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-import unittest
+from django.test import LiveServerTestCase
 
 
-class NewVisitorTest(unittest.TestCase):
+class NewVisitorTest(LiveServerTestCase):
 	def setUp(self):
 		self.browser = webdriver.Firefox()
 		self.browser.implicitly_wait(3)
@@ -16,10 +16,9 @@ class NewVisitorTest(unittest.TestCase):
 		rows = table.find_elements_by_tag_name('tr')
 		self.assertIn(row_text, [row.text for row in rows])
 
-
 	def test_can_start_a_list_add_two_items_and_retrieve_it_later(self):
 		# navigate to the home page
-		self.browser.get("http://localhost:8000")
+		self.browser.get(self.live_server_url)
 		self.assertIn('To-Do', self.browser.title)
 		header_text = self.browser.find_element_by_tag_name('h1').text
 		self.assertIn('To-Do', header_text)
@@ -47,7 +46,3 @@ class NewVisitorTest(unittest.TestCase):
 		# User wonders if the site will remember their list and notices a unique URL exists.
 		# The User visits the URL and finds the list still exists.
 		self.fail('Finish the test!')
-
-
-if __name__ == '__main__':
-	unittest.main(warnings='ignore')
