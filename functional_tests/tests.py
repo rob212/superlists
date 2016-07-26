@@ -43,7 +43,33 @@ class NewVisitorTest(LiveServerTestCase):
 
 		# The page updates again and both items are now shown in the list
 		self.check_for_row_in_table('2: buy chocolate')
+		self.check_for_row_in_table('1: buy apples')
 
-		# User wonders if the site will remember their list and notices a unique URL exists.
-		# The User visits the URL and finds the list still exists.
-		self.fail('Finish the test!')
+		# Now a new user, Karen comes to the site
+
+		## We use a new browser session to make sure that no info of Barry's is present
+		##  from cookies etc
+		self.browser.quit()
+		self.browser = webdriver.Firefox()
+
+		# Karen visits the home page, there is no sign of Barry's list
+		self.browser.get(self.live_server_url)
+		page_text = self.browser.find_elements_by_tag_name('body')
+		self.assertNotIn('1: buy apples', page_text)
+		self.assertNotIn('2: but chocolate', page_text)
+
+		# Karen starts her own list
+		inputbox = self.browser.find_element_by_id('id_new_item')
+		inputbox.send_keys("practice yoga")
+		inputbox.send_keys(Keys.ENTER)
+
+		# Karen gets her own unique list URL
+		karen_list_url = self.browser.current_url
+		self.assertRegex(karen_list_url, '/lists/.+')
+		self.assertNotEqual(karen_list_url, barry_list_url)
+
+		self.check_for_row_in_table('1: practice yoga')
+		page_text = self.browser.find_elements_by_tag_name('body')
+		self.assertNotIn('1: buy apples', page_text)
+
+
