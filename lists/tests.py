@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.core.urlresolvers import resolve
 from lists.views import home_page
 from django.http import HttpRequest
-from lists.models import Item
+from lists.models import Item, List
 
 
 class HomePageTest(TestCase):
@@ -36,8 +36,9 @@ class HomePageTest(TestCase):
 
 class ListViewTest(TestCase):
 	def test_displays_all_items(self):
-		Item.objects.create(text="Itemy 1")
-		Item.objects.create(text="Itemy 2")
+		my_list = List.objects.create()
+		Item.objects.create(text="Itemy 1", list=my_list)
+		Item.objects.create(text="Itemy 2", list=my_list)
 
 		response = self.client.get('/lists/the_only_list_in_the_world')
 
@@ -63,15 +64,23 @@ class NewListTest(TestCase):
 		self.assertRedirects(response, '/lists/the_only_list_in_the_world')
 
 
-class ItemModelTest(TestCase):
+class ListAndItemModelTest(TestCase):
 	def test_saving_and_retrieving_items(self):
+		my_list = List()
+		my_list.save()
+
 		first_item = Item()
 		first_item.text = 'The first (ever) list item'
+		first_item.list = my_list
 		first_item.save()
 
 		second_item = Item()
 		second_item.text = 'The second item'
+		second_item.list = my_list
 		second_item.save()
+
+		saved_list = List.objects.first()
+		self.assertEqual(saved_list, my_list)
 
 		saved_items = Item.objects.all()
 		self.assertEquals(saved_items.count(), 2)
@@ -79,4 +88,6 @@ class ItemModelTest(TestCase):
 		retrieved_first_item = saved_items[0]
 		retrieved_second_item = saved_items[1]
 		self.assertEqual(retrieved_first_item.text, first_item.text)
+		self.assertEqual(retrieved_first_item.list, my_list)
 		self.assertEqual(retrieved_second_item.text, second_item.text)
+		self.assertEqual(retrieved_second_item.list, my_list)
