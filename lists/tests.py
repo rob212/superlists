@@ -9,19 +9,13 @@ from lists.models import Item
 
 class HomePageTest(TestCase):
 	def setUp(self):
-		self.EXPECTED_ITEM_TEXT = 'A new list item'
 		self.request = HttpRequest()
 		self.request.method = 'POST'
-		self.request.POST['item_text'] = self.EXPECTED_ITEM_TEXT
+		self.request.POST['item_text'] = 'A new list item'
 
 	def test_rootURL_resolvesToHomePageView(self):
 		found = resolve('/')
 		self.assertEquals(found.func, home_page)
-
-	def test_home_page_only_saves_items_when_they_exist_in_request(self):
-		request = HttpRequest()
-		home_page(request)
-		self.assertEqual(Item.objects.count(), 0)
 
 	def test_home_page_returns_correct_html(self):
 		request = HttpRequest()
@@ -33,19 +27,6 @@ class HomePageTest(TestCase):
 		observed_html = self.remove_csrf_from_markup(response)
 
 		self.assertIn(expected_html, observed_html)
-
-	def test_home_page_can_save_a_POST_request(self):
-		home_page(self.request)
-
-		self.assertEqual(Item.objects.count(), 1)
-		retrieved_item = Item.objects.first()
-		self.assertEqual(retrieved_item.text, self.EXPECTED_ITEM_TEXT)
-
-	def test_home_page_redirects_after_POST(self):
-		response = home_page(self.request)
-
-		self.assertEqual(response.status_code, 302)
-		self.assertEqual(response['location'], '/lists/the_only_list_in_the_world')
 
 	def remove_csrf_from_markup(self, response):
 		csrf_regex = r'<input[^>]+csrfmiddlewaretoken[^>]+>'
@@ -66,6 +47,20 @@ class ListViewTest(TestCase):
 	def test_list_template_is_being_used(self):
 		response = self.client.get('/lists/the_only_list_in_the_world')
 		self.assertTemplateUsed(response, 'list.html')
+
+
+class NewListTest(TestCase):
+	def test_saving_a_POST_request(self):
+		self.client.post('/lists/new', data={'item_text': 'A new list item'})
+
+		self.assertEqual(Item.objects.count(), 1)
+		retrieved_item = Item.objects.first()
+		self.assertEqual(retrieved_item.text, 'A new list item')
+
+	def test_redirects_after_POST_request(self):
+		response = self.client.post('/lists/new', data={'item_text': 'A new list item'})
+
+		self.assertRedirects(response, '/lists/the_only_list_in_the_world')
 
 
 class ItemModelTest(TestCase):
