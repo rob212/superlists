@@ -1,10 +1,25 @@
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-
+import sys
 
 
 class NewVisitorTest(StaticLiveServerTestCase):
+
+	@classmethod
+	def setUpClass(cls):
+		for arg in sys.argv:
+			if 'liveserver' in arg:
+				cls.server_url = 'http://' + arg.split('=')[1]
+				return
+		super().setUpClass()
+		cls.server_url = cls.live_server_url
+
+	@classmethod
+	def tearDownClass(cls):
+		if cls.server_url == cls.live_server_url:
+			super().tearDownClass()
+
 	def setUp(self):
 		self.browser = webdriver.Firefox()
 		self.browser.implicitly_wait(3)
@@ -19,7 +34,7 @@ class NewVisitorTest(StaticLiveServerTestCase):
 
 	def test_can_start_a_list_add_two_items_and_retrieve_it_later(self):
 		# Barry navigates to the home page
-		self.browser.get(self.live_server_url)
+		self.browser.get(self.server_url)
 		self.assertIn('To-Do', self.browser.title)
 		header_text = self.browser.find_element_by_tag_name('h1').text
 		self.assertIn('To-Do', header_text)
@@ -54,7 +69,7 @@ class NewVisitorTest(StaticLiveServerTestCase):
 		self.browser = webdriver.Firefox()
 
 		# Karen visits the home page, there is no sign of Barry's list
-		self.browser.get(self.live_server_url)
+		self.browser.get(self.server_url)
 		page_text = self.browser.find_elements_by_tag_name('body')
 		self.assertNotIn('1: buy apples', page_text)
 		self.assertNotIn('2: but chocolate', page_text)
@@ -75,7 +90,7 @@ class NewVisitorTest(StaticLiveServerTestCase):
 
 	def test_layout_and_styling(self):
 		# Barry goes to the home page
-		self.browser.get(self.live_server_url)
+		self.browser.get(self.server_url)
 		self.browser.set_window_size(1024, 768)
 
 		# He notices that the input box is nicely centered
